@@ -4,6 +4,7 @@ import '../screens/chatpage.dart';
 
 /* --- 省略 --- */
 // ログイン画面用Widget
+//tttttttttttttt
 
 class LoginPage extends StatefulWidget {
   @override
