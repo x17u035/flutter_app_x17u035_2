@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../screens/chatpage.dart';
 
+
 /* --- 省略 --- */
 // ログイン画面用Widget
 //tttttttttttttt
@@ -12,6 +13,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  String infoText = '';
+  // 入力したメールアドレス・パスワード
+  String email = '';
+  String password = '';
   /* --- 省略 --- */
   @override
   Widget build(BuildContext context) {
@@ -22,9 +27,25 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              TextFormField( /* --- 省略 --- */ ),
-              TextFormField( /* --- 省略 --- */ ),
-              Container( /* --- 省略 --- */ ),
+              TextFormField( decoration: InputDecoration(labelText: 'メールアドレス'),
+                onChanged: (String value) {
+                  setState(() {
+                    email = value;
+                  });
+                },
+              ),
+              TextFormField( decoration: InputDecoration(labelText: 'パスワード'),
+                obscureText: true,
+                onChanged: (String value) {
+                  setState(() {
+                    password = value;
+                  });
+                },
+              ),
+              Container( padding: EdgeInsets.all(8),
+                // メッセージ表示
+                child: Text(infoText),
+              ),
               Container(
                 width: double.infinity,
                 // ユーザー登録ボタン
@@ -91,4 +112,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-// チャット画面用Widget
