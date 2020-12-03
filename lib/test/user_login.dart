@@ -1,113 +1,137 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/widgets/auth/email_sign_in_form.dart
+
 import 'package:flutter/material.dart';
-import '../screens/chatpage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:email_validator/email_validator.dart';
+import 'package:flutter/services.dart';
+import 'package:flushbar/flushbar.dart';
 
+import '../screens/reset_password_screen.dart';
 
-/* --- 省略 --- */
-// ログイン画面用Widget
-//tttttttttttttt
-
-class LoginPage extends StatefulWidget {
+class EmailSignInForm extends StatefulWidget {
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _EmailSignInFormState createState() => _EmailSignInFormState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  String infoText = '';
-  // 入力したメールアドレス・パスワード
-  String email = '';
-  String password = '';
-  /* --- 省略 --- */
+class _EmailSignInFormState extends State<EmailSignInForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  var _isLoading = false;
+  var _email = "";
+  var _password = "";
+
+  Future<void> _signIn() async {
+    // 登録結果を格納する
+    // バリデーションを実行
+    final isValid = _formKey.currentState.validate();
+    // キーボードを閉じる
+    FocusScope.of(context).unfocus();
+
+    // バリデーションに問題がなければ登録
+    if (isValid) {
+      try {
+        setState(() {
+          _isLoading = true;
+        });
+        // formの内容を保存
+        _formKey.currentState.save();
+        // サインインを実行
+        UserCredential authResult = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(email: _email, password: _password);
+        // 登録に成功したユーザ情情報も取得可能
+        print(authResult.user.uid);
+      } on PlatformException catch (err) {
+        var message = 'エラーが発生しました。認証情報を確認してください。';
+        if (err.message != null) {
+          message = err.message;
+        }
+        _showErrorFlash(message);
+        setState(() {
+          _isLoading = false;
+        });
+      } catch (err) {
+        print(err);
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showErrorFlash(String message) {
+    Flushbar(
+      message: message,
+      backgroundColor: Colors.red,
+      margin: EdgeInsets.all(8),
+      borderRadius: 8,
+      duration: Duration(seconds: 3),
+    )..show(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Container(
-          padding: EdgeInsets.all(24),
+    return Card(
+      child: Padding(
+        child: Form(
+          key: _formKey,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              TextFormField( decoration: InputDecoration(labelText: 'メールアドレス'),
-                onChanged: (String value) {
-                  setState(() {
-                    email = value;
-                  });
+            children: [
+              // メールアドレスの入力フィールド
+              TextFormField(
+                key: ValueKey("email"),
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: "メールアドレス"),
+                validator: (value) {
+                  if (!EmailValidator.validate(value)) {
+                    return "正しいメールアドレスを入力してください";
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  _email = value;
                 },
               ),
-              TextFormField( decoration: InputDecoration(labelText: 'パスワード'),
+              // パスワード1の入力フィールド
+              TextFormField(
+                key: ValueKey("password"),
+                decoration: InputDecoration(labelText: "パスワード"),
                 obscureText: true,
-                onChanged: (String value) {
-                  setState(() {
-                    password = value;
-                  });
+                validator: (value) {
+                  if (value.isEmpty || value.length < 4) {
+                    return '最低4文字以上は入力してください';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  _password = value;
                 },
               ),
-              Container( padding: EdgeInsets.all(8),
-                // メッセージ表示
-                child: Text(infoText),
+              SizedBox(
+                height: 12,
               ),
-              Container(
-                width: double.infinity,
-                // ユーザー登録ボタン
-                child: RaisedButton(
-                  color: Colors.blue,
-                  textColor: Colors.white,
-                  child: Text('ユーザー登録'),
-                  onPressed: () async {
-                    try {
-                      // メール/パスワードでユーザー登録
-                      final FirebaseAuth auth = FirebaseAuth.instance;
-                      final AuthResult result = await auth.createUserWithEmailAndPassword(
-                        email: email,
-                        password: password,
-                      );
-                      final FirebaseUser user = result.user;
-                      // ユーザー登録に成功した場合
-                      // チャット画面に遷移＋ログイン画面を破棄
-                      await Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) {
-                          // ユーザー情報を渡す
-                          return ChatPage(user);
-                        }),
-                      );
-                    } catch (e) {
-                      /* --- 省略 --- */
-                    }
-                  },
+              _isLoading
+                  ? Center(
+                child: CircularProgressIndicator(),
+              )
+                  : RaisedButton(
+                child: Text("ログイン"),
+                onPressed: _signIn,
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, ResetPasswordScreen.routeName);
+                },
+                child: Text(
+                  "パスワードを忘れた方はこちら",
+                  style: TextStyle(
+                    color: Colors.blue,
+                  ),
                 ),
-              ),
-              Container(
-                width: double.infinity,
-                // ログイン登録ボタン
-                child: OutlineButton(
-                  textColor: Colors.blue,
-                  child: Text('ログイン'),
-                  onPressed: () async {
-                    try {
-                      // メール/パスワードでログイン
-                      final FirebaseAuth auth = FirebaseAuth.instance;
-                      final AuthResult result = await auth.signInWithEmailAndPassword(
-                        email: email,
-                        password: password,
-                      );
-                      final FirebaseUser user = result.user;
-                      // ログインに成功した場合
-                      // チャット画面に遷移＋ログイン画面を破棄
-                      await Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) {
-                          // ユーザー情報を渡す
-                          return ChatPage(user);
-                        }),
-                      );
-                    } catch (e) {
-                      /* --- 省略 --- */
-                    }
-                  },
-                ),
-              ),
+              )
             ],
           ),
         ),
+        padding: EdgeInsets.all(16),
       ),
     );
   }
